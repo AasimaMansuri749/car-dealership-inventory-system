@@ -27,3 +27,20 @@ class VehicleResponse(VehicleBase):
     created_at: datetime
     updated_at: datetime
 
+
+class VehicleUpdate(BaseModel):
+    """All fields are optional — only provided fields will be updated."""
+    price: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
+    quantity: Optional[int] = Field(None, ge=0)
+    description: Optional[str] = None
+    year: Optional[int] = None
+    color: Optional[str] = Field(None, max_length=30)
+    mileage: Optional[int] = Field(None, ge=0)
+    fuel_type: Optional[str] = Field(None, max_length=20)
+    transmission: Optional[str] = Field(None, max_length=20)
+    image_url: Optional[str] = Field(None, max_length=255)
+    make: Optional[str] = Field(None, max_length=50)
+    model: Optional[str] = Field(None, max_length=50)
+    category: Optional[str] = Field(None, max_length=30)
+
+

@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
 from app.models.vehicle import Vehicle
-from app.schemas.vehicle import VehicleCreate, VehicleResponse
+from app.schemas.vehicle import VehicleCreate, VehicleResponse, VehicleUpdate
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
 
@@ -25,4 +25,25 @@ def create_vehicle(
     db.commit()
     db.refresh(db_vehicle)
     return db_vehicle
+
+
+@router.put("/{vehicle_id}", response_model=VehicleResponse, status_code=200)
+def update_vehicle(
+    vehicle_id: int,
+    vehicle_data: VehicleUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update an existing vehicle. Only provided fields are changed."""
+    db_vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if db_vehicle is None:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    updated_fields = vehicle_data.model_dump(exclude_unset=True)
+    for field, value in updated_fields.items():
+        setattr(db_vehicle, field, value)
+
+    db.commit()
+    db.refresh(db_vehicle)
+    return db_vehicle
+
 
