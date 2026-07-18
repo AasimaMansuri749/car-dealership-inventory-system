@@ -223,3 +223,59 @@ def test_delete_vehicle_not_found():
     response = client.delete("/vehicles/99999")
     assert response.status_code == 404
 
+
+from app.exceptions.vehicle_exceptions import InvalidVehicleData
+from app.services import vehicle_service
+
+def test_vehicle_service_create_negative_price(valid_payload):
+    """Directly calling vehicle_service.create_vehicle with a negative price must raise InvalidVehicleData."""
+    db: Session = TestSessionLocal()
+    try:
+        bad_payload = valid_payload.copy()
+        bad_payload["price"] = -100
+        with pytest.raises(InvalidVehicleData) as exc_info:
+            vehicle_service.create_vehicle(db, bad_payload)
+        assert "Price cannot be negative" in str(exc_info.value)
+    finally:
+        db.close()
+
+
+def test_vehicle_service_create_negative_quantity(valid_payload):
+    """Directly calling vehicle_service.create_vehicle with a negative quantity must raise InvalidVehicleData."""
+    db: Session = TestSessionLocal()
+    try:
+        bad_payload = valid_payload.copy()
+        bad_payload["quantity"] = -5
+        with pytest.raises(InvalidVehicleData) as exc_info:
+            vehicle_service.create_vehicle(db, bad_payload)
+        assert "Quantity cannot be negative" in str(exc_info.value)
+    finally:
+        db.close()
+
+
+def test_vehicle_service_update_negative_price(valid_payload):
+    """Directly calling vehicle_service.update_vehicle with a negative price must raise InvalidVehicleData."""
+    db: Session = TestSessionLocal()
+    try:
+        # Create a valid one first
+        vehicle = vehicle_service.create_vehicle(db, valid_payload)
+        with pytest.raises(InvalidVehicleData) as exc_info:
+            vehicle_service.update_vehicle(db, vehicle.id, {"price": -10.50})
+        assert "Price cannot be negative" in str(exc_info.value)
+    finally:
+        db.close()
+
+
+def test_vehicle_service_update_negative_quantity(valid_payload):
+    """Directly calling vehicle_service.update_vehicle with a negative quantity must raise InvalidVehicleData."""
+    db: Session = TestSessionLocal()
+    try:
+        # Create a valid one first
+        vehicle = vehicle_service.create_vehicle(db, valid_payload)
+        with pytest.raises(InvalidVehicleData) as exc_info:
+            vehicle_service.update_vehicle(db, vehicle.id, {"quantity": -1})
+        assert "Quantity cannot be negative" in str(exc_info.value)
+    finally:
+        db.close()
+
+
