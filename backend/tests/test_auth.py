@@ -104,3 +104,47 @@ def test_register_missing_fields(register_payload, missing_field):
 
     response = client.post("/auth/register", json=incomplete_payload)
     assert response.status_code == 422
+
+
+# ── Login Tests (RED phase) ────────────────────────────────────────────────
+
+def test_login_success(register_payload):
+    """POST /auth/login with valid credentials must return 200 and a JWT."""
+    # Create the user first
+    client.post("/auth/register", json=register_payload)
+
+    # Attempt login
+    login_payload = {
+        "email": register_payload["email"],
+        "password": register_payload["password"]
+    }
+    response = client.post("/auth/login", json=login_payload)
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"].lower() == "bearer"
+
+
+def test_login_wrong_password(register_payload):
+    """POST /auth/login with a wrong password must return HTTP 401."""
+    # Create the user first
+    client.post("/auth/register", json=register_payload)
+
+    # Attempt login with wrong password
+    login_payload = {
+        "email": register_payload["email"],
+        "password": "wrongpassword123"
+    }
+    response = client.post("/auth/login", json=login_payload)
+    assert response.status_code == 401
+
+
+def test_login_unknown_email():
+    """POST /auth/login with an unknown email must return HTTP 401."""
+    login_payload = {
+        "email": "unknown@example.com",
+        "password": "somepassword"
+    }
+    response = client.post("/auth/login", json=login_payload)
+    assert response.status_code == 401
