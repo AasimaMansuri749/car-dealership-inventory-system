@@ -3,12 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 from pydantic import ValidationError
 
-# These imports will fail because the schemas module or classes do not exist yet (RED Phase)
-try:
-    from app.schemas.vehicle import VehicleCreate, VehicleResponse
-except ImportError:
-    VehicleCreate = None
-    VehicleResponse = None
+from app.schemas.vehicle import VehicleCreate, VehicleResponse
+
 
 
 # Mocking a vehicle model instance for testing response serialization
