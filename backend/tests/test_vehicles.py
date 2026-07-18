@@ -133,3 +133,64 @@ def test_create_vehicle_negative_quantity(valid_payload):
     response = client.post("/vehicles", json=payload_neg_qty)
     assert response.status_code == 422
 
+
+# ── PUT /vehicles/{id} tests (RED phase) ──────────────────────────────────
+
+def test_update_vehicle_success(valid_payload):
+    """PUT /vehicles/{id} must return 200 and persist updated fields in the DB."""
+    # First create a vehicle to update
+    create_response = client.post("/vehicles", json=valid_payload)
+    assert create_response.status_code == 201
+    vehicle_id = create_response.json()["id"]
+
+    # Send full update payload with changed price, quantity and description
+    update_payload = {
+        "make": valid_payload["make"],
+        "model": valid_payload["model"],
+        "category": valid_payload["category"],
+        "price": 27000,
+        "quantity": 10,
+        "description": "Updated description",
+        "year": valid_payload["year"],
+        "color": valid_payload["color"],
+        "mileage": valid_payload["mileage"],
+        "fuel_type": valid_payload["fuel_type"],
+        "transmission": valid_payload["transmission"],
+        "image_url": valid_payload["image_url"],
+    }
+    response = client.put(f"/vehicles/{vehicle_id}", json=update_payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert float(data["price"]) == 27000.0
+    assert data["quantity"] == 10
+    assert data["description"] == "Updated description"
+
+    # Verify the DB record was actually updated
+    db: Session = TestSessionLocal()
+    try:
+        db_vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+        assert db_vehicle is not None
+        assert float(db_vehicle.price) == 27000.0
+        assert db_vehicle.quantity == 10
+        assert db_vehicle.description == "Updated description"
+    finally:
+        db.close()
+
+
+def test_update_vehicle_not_found():
+    """PUT /vehicles/{id} with a non-existing ID must return HTTP 404."""
+    update_payload = {
+        "make": "Honda",
+        "model": "Civic",
+        "category": "Sedan",
+        "price": 20000,
+        "quantity": 3,
+        "year": 2023,
+        "color": "White",
+        "mileage": 5000,
+        "fuel_type": "Petrol",
+        "transmission": "Manual",
+    }
+    response = client.put("/vehicles/99999", json=update_payload)
+    assert response.status_code == 404
