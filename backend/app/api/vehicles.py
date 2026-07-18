@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
@@ -45,5 +45,21 @@ def update_vehicle(
     db.commit()
     db.refresh(db_vehicle)
     return db_vehicle
+
+
+@router.delete("/{vehicle_id}", status_code=204)
+def delete_vehicle(
+    vehicle_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a vehicle by ID. Returns 204 No Content on success."""
+    db_vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    if db_vehicle is None:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+
+    db.delete(db_vehicle)
+    db.commit()
+    return Response(status_code=204)
+
 
 
