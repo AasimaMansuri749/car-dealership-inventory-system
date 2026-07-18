@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
 from app.schemas.vehicle import VehicleCreate, VehicleResponse, VehicleUpdate
-from app.repositories import vehicle_repository
+from app.services import vehicle_service
 
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/vehicles", tags=["vehicles"])
 @router.get("/")
 def get_vehicles(db: Session = Depends(get_db)):
     """Return all vehicles in the inventory."""
-    return vehicle_repository.get_all_vehicles(db)
+    return vehicle_service.get_all_vehicles(db)
 
 
 @router.post("/", response_model=VehicleResponse, status_code=201)
@@ -20,7 +20,7 @@ def create_vehicle(
     db: Session = Depends(get_db)
 ):
     """Create a new vehicle in the inventory."""
-    return vehicle_repository.create_vehicle(db, vehicle.model_dump())
+    return vehicle_service.create_vehicle(db, vehicle.model_dump())
 
 
 @router.put("/{vehicle_id}", response_model=VehicleResponse, status_code=200)
@@ -30,7 +30,7 @@ def update_vehicle(
     db: Session = Depends(get_db)
 ):
     """Update an existing vehicle. Only provided fields are changed."""
-    db_vehicle = vehicle_repository.update_vehicle(
+    db_vehicle = vehicle_service.update_vehicle(
         db, vehicle_id, vehicle_data.model_dump(exclude_unset=True)
     )
     if db_vehicle is None:
@@ -44,10 +44,11 @@ def delete_vehicle(
     db: Session = Depends(get_db)
 ):
     """Delete a vehicle by ID. Returns 204 No Content on success."""
-    success = vehicle_repository.delete_vehicle(db, vehicle_id)
+    success = vehicle_service.delete_vehicle(db, vehicle_id)
     if not success:
         raise HTTPException(status_code=404, detail="Vehicle not found")
     return Response(status_code=204)
+
 
 
 
