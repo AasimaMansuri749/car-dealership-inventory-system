@@ -14,7 +14,24 @@ def get_vehicles(db: Session = Depends(get_db)):
     """Return all vehicles in the inventory."""
     return vehicle_service.get_all_vehicles(db)
 
+@router.get("/{vehicle_id}")
+def get_vehicle(
+    vehicle_id: int,
+    db: Session = Depends(get_db)
+):
+    vehicle = vehicle_service.get_vehicle_by_id(
+        db,
+        vehicle_id
+    )
 
+    if vehicle is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Vehicle not found"
+        )
+
+    return vehicle
+    
 @router.post("/", response_model=VehicleResponse, status_code=201)
 def create_vehicle(
     vehicle: VehicleCreate,
