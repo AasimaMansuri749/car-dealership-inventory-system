@@ -194,3 +194,32 @@ def test_update_vehicle_not_found():
     }
     response = client.put("/vehicles/99999", json=update_payload)
     assert response.status_code == 404
+
+
+# ── DELETE /vehicles/{id} tests (RED phase) ───────────────────────────────
+
+def test_delete_vehicle_success(valid_payload):
+    """DELETE /vehicles/{id} must return 204 and remove the vehicle from the DB."""
+    # Create a vehicle to delete
+    create_response = client.post("/vehicles", json=valid_payload)
+    assert create_response.status_code == 201
+    vehicle_id = create_response.json()["id"]
+
+    # Delete the vehicle
+    response = client.delete(f"/vehicles/{vehicle_id}")
+    assert response.status_code == 204
+
+    # Verify it no longer exists in the DB
+    db: Session = TestSessionLocal()
+    try:
+        db_vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+        assert db_vehicle is None, "Vehicle should have been deleted from the database"
+    finally:
+        db.close()
+
+
+def test_delete_vehicle_not_found():
+    """DELETE /vehicles/{id} with a non-existing ID must return HTTP 404."""
+    response = client.delete("/vehicles/99999")
+    assert response.status_code == 404
+
