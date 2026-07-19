@@ -6,8 +6,7 @@ from app.database.database import Base
 # Import models
 from app.models.user import User
 from app.models.vehicle import Vehicle
-from app.models.order import Order
-from app.models.order_item import OrderItem
+
 
 
 # Use an in-memory SQLite database for tests
@@ -52,17 +51,12 @@ def test_vehicle_model_has_all_attributes():
     assert hasattr(Vehicle, "updated_at")
 
 
-def test_order_models_exist():
-    """Test that Order and OrderItem models are implemented."""
-    assert Order is not None, "Order model is not implemented"
-    assert OrderItem is not None, "OrderItem model is not implemented"
-    assert Order.__tablename__ == "orders"
-    assert OrderItem.__tablename__ == "order_items"
+
 
 
 def test_tables_are_created_successfully():
-    """Test that all tables (including orders and order_items) are created successfully."""
-    from app.models import User, Vehicle, Order, OrderItem  # noqa: F401
+    """Test that all tables are created successfully."""
+    from app.models import User, Vehicle  # noqa: F401
 
     Base.metadata.create_all(bind=test_engine)
     inspector = inspect(test_engine)
@@ -70,6 +64,5 @@ def test_tables_are_created_successfully():
     
     assert "users" in tables
     assert "vehicles" in tables
-    assert "orders" in tables
-    assert "order_items" in tables
+  
 

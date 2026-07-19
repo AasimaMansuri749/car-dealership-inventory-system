@@ -41,6 +41,17 @@ def override_get_db():
 # ── Apply the override ─────────────────────────────────────────────────────
 app.dependency_overrides[get_db] = override_get_db
 
+from app.dependencies.auth import get_current_user, get_admin_user
+
+def override_get_current_user():
+    return User(id=1, username="test_user", email="test@example.com", role="CUSTOMER")
+
+def override_get_admin_user():
+    return User(id=2, username="admin_user", email="admin@example.com", role="ADMIN")
+
+app.dependency_overrides[get_current_user] = override_get_current_user
+app.dependency_overrides[get_admin_user] = override_get_admin_user
+
 client = TestClient(app)
 
 
@@ -48,13 +59,13 @@ client = TestClient(app)
 
 def test_get_vehicles_returns_200():
     """GET /vehicles must respond with HTTP 200 OK."""
-    response = client.get("/vehicles")
+    response = client.get("/api/vehicles")
     assert response.status_code == 200
 
 
 def test_get_vehicles_returns_empty_list_when_no_vehicles_exist():
     """GET /vehicles must return an empty list [] when the DB has no vehicles."""
-    response = client.get("/vehicles")
+    response = client.get("/api/vehicles")
     assert response.json() == []
 
 
@@ -78,7 +89,7 @@ def valid_payload():
 
 def test_create_vehicle_success(valid_payload):
     """POST /vehicles with valid payload should return 201 Created, return vehicle response structure, and save it in DB."""
-    response = client.post("/vehicles", json=valid_payload)
+    response = client.post("/api/vehicles", json=valid_payload)
     
     assert response.status_code == 201
     data = response.json()
@@ -116,13 +127,13 @@ def test_create_vehicle_invalid_price(valid_payload):
     # Test price = 0
     payload_zero_price = valid_payload.copy()
     payload_zero_price["price"] = 0
-    response = client.post("/vehicles", json=payload_zero_price)
+    response = client.post("/api/vehicles", json=payload_zero_price)
     assert response.status_code == 422
 
     # Test price < 0
     payload_neg_price = valid_payload.copy()
     payload_neg_price["price"] = -500
-    response = client.post("/vehicles", json=payload_neg_price)
+    response = client.post("/api/vehicles", json=payload_neg_price)
     assert response.status_code == 422
 
 
@@ -130,7 +141,7 @@ def test_create_vehicle_negative_quantity(valid_payload):
     """POST /vehicles must fail with 422 if quantity is negative."""
     payload_neg_qty = valid_payload.copy()
     payload_neg_qty["quantity"] = -1
-    response = client.post("/vehicles", json=payload_neg_qty)
+    response = client.post("/api/vehicles", json=payload_neg_qty)
     assert response.status_code == 422
 
 
@@ -139,7 +150,7 @@ def test_create_vehicle_negative_quantity(valid_payload):
 def test_update_vehicle_success(valid_payload):
     """PUT /vehicles/{id} must return 200 and persist updated fields in the DB."""
     # First create a vehicle to update
-    create_response = client.post("/vehicles", json=valid_payload)
+    create_response = client.post("/api/vehicles", json=valid_payload)
     assert create_response.status_code == 201
     vehicle_id = create_response.json()["id"]
 
@@ -158,7 +169,7 @@ def test_update_vehicle_success(valid_payload):
         "transmission": valid_payload["transmission"],
         "image_url": valid_payload["image_url"],
     }
-    response = client.put(f"/vehicles/{vehicle_id}", json=update_payload)
+    response = client.put(f"/api/vehicles/{vehicle_id}", json=update_payload)
 
     assert response.status_code == 200
     data = response.json()
@@ -192,7 +203,7 @@ def test_update_vehicle_not_found():
         "fuel_type": "Petrol",
         "transmission": "Manual",
     }
-    response = client.put("/vehicles/99999", json=update_payload)
+    response = client.put("/api/vehicles/99999", json=update_payload)
     assert response.status_code == 404
 
 
@@ -201,12 +212,12 @@ def test_update_vehicle_not_found():
 def test_delete_vehicle_success(valid_payload):
     """DELETE /vehicles/{id} must return 204 and remove the vehicle from the DB."""
     # Create a vehicle to delete
-    create_response = client.post("/vehicles", json=valid_payload)
+    create_response = client.post("/api/vehicles", json=valid_payload)
     assert create_response.status_code == 201
     vehicle_id = create_response.json()["id"]
 
     # Delete the vehicle
-    response = client.delete(f"/vehicles/{vehicle_id}")
+    response = client.delete(f"/api/vehicles/{vehicle_id}")
     assert response.status_code == 204
 
     # Verify it no longer exists in the DB
@@ -220,7 +231,7 @@ def test_delete_vehicle_success(valid_payload):
 
 def test_delete_vehicle_not_found():
     """DELETE /vehicles/{id} with a non-existing ID must return HTTP 404."""
-    response = client.delete("/vehicles/99999")
+    response = client.delete("/api/vehicles/99999")
     assert response.status_code == 404
 
 
@@ -277,5 +288,90 @@ def test_vehicle_service_update_negative_quantity(valid_payload):
         assert "Quantity cannot be negative" in str(exc_info.value)
     finally:
         db.close()
+
+
+# ── New Tests for Search, Purchase, Restock & Auth Role checks ─────────────
+
+def test_search_vehicles_success(valid_payload):
+    """GET /vehicles/search must filter results according to params."""
+    # Ensure there's a vehicle in DB
+    client.post("/api/vehicles", json=valid_payload)
+    
+    # Search match
+    response = client.get("/api/vehicles/search?make=Toyota")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+    assert data[0]["make"] == "Toyota"
+    
+    # Search no match
+    response_empty = client.get("/api/vehicles/search?make=Honda")
+    assert response_empty.status_code == 200
+    assert response_empty.json() == []
+
+def test_purchase_vehicle_success(valid_payload):
+    """POST /vehicles/{id}/purchase must decrement the vehicle's quantity by 1."""
+    create_response = client.post("/api/vehicles", json=valid_payload)
+    assert create_response.status_code == 201
+    vehicle_id = create_response.json()["id"]
+    original_qty = create_response.json()["quantity"]
+    
+    purchase_response = client.post(f"/api/vehicles/{vehicle_id}/purchase")
+    assert purchase_response.status_code == 200
+    assert purchase_response.json()["quantity"] == original_qty - 1
+
+def test_purchase_vehicle_out_of_stock(valid_payload):
+    """POST /vehicles/{id}/purchase must return 400 when quantity is 0."""
+    no_stock_payload = valid_payload.copy()
+    no_stock_payload["quantity"] = 0
+    create_response = client.post("/api/vehicles", json=no_stock_payload)
+    assert create_response.status_code == 201
+    vehicle_id = create_response.json()["id"]
+    
+    purchase_response = client.post(f"/api/vehicles/{vehicle_id}/purchase")
+    assert purchase_response.status_code == 400
+    assert "out of stock" in purchase_response.json()["detail"]
+
+def test_restock_vehicle_success(valid_payload):
+    """POST /vehicles/{id}/restock (Admin only) must increment vehicle quantity."""
+    create_response = client.post("/api/vehicles", json=valid_payload)
+    assert create_response.status_code == 201
+    vehicle_id = create_response.json()["id"]
+    original_qty = create_response.json()["quantity"]
+    
+    restock_response = client.post(f"/api/vehicles/{vehicle_id}/restock", json={"quantity": 10})
+    assert restock_response.status_code == 200
+    assert restock_response.json()["quantity"] == original_qty + 10
+
+def test_restock_vehicle_unauthorized_for_customer(valid_payload):
+    """POST /vehicles/{id}/restock must return 403 Forbidden for non-admin user."""
+    # Temporarily override get_admin_user to raise HTTP 403 (simulating non-admin)
+    from fastapi import HTTPException
+    def mock_get_admin_user_forbidden():
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    app.dependency_overrides[get_admin_user] = mock_get_admin_user_forbidden
+    
+    try:
+        response = client.post("/api/vehicles/1/restock", json={"quantity": 10})
+        assert response.status_code == 403
+    finally:
+        # Restore override
+        app.dependency_overrides[get_admin_user] = override_get_admin_user
+
+def test_create_vehicle_unauthorized_for_customer(valid_payload):
+    """POST /vehicles must return 403 Forbidden for non-admin user."""
+    from fastapi import HTTPException
+    def mock_get_admin_user_forbidden():
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    app.dependency_overrides[get_admin_user] = mock_get_admin_user_forbidden
+    
+    try:
+        response = client.post("/api/vehicles", json=valid_payload)
+        assert response.status_code == 403
+    finally:
+        app.dependency_overrides[get_admin_user] = override_get_admin_user
+
 
 
