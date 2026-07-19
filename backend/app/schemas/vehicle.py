@@ -44,3 +44,8 @@ class VehicleUpdate(BaseModel):
     category: Optional[str] = Field(None, max_length=30)
 
 
+class VehicleRestock(BaseModel):
+    quantity: int = Field(..., gt=0)
+
+
+

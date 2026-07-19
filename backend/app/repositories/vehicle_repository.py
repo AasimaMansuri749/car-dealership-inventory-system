@@ -37,3 +37,47 @@ def delete_vehicle(db: Session, vehicle_id: int) -> bool:
     db.delete(db_vehicle)
     db.commit()
     return True
+
+def search_vehicles(
+    db: Session,
+    make: Optional[str] = None,
+    model: Optional[str] = None,
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None
+) -> List[Vehicle]:
+    """Search and filter vehicles based on parameters."""
+    query = db.query(Vehicle)
+    if make:
+        query = query.filter(Vehicle.make.ilike(f"%{make}%"))
+    if model:
+        query = query.filter(Vehicle.model.ilike(f"%{model}%"))
+    if category:
+        query = query.filter(Vehicle.category.ilike(f"%{category}%"))
+    if min_price is not None:
+        query = query.filter(Vehicle.price >= min_price)
+    if max_price is not None:
+        query = query.filter(Vehicle.price <= max_price)
+    return query.all()
+
+def purchase_vehicle(db: Session, vehicle_id: int) -> Optional[Vehicle]:
+    """Decrement a vehicle's quantity by 1. Returns None if vehicle not found."""
+    db_vehicle = get_vehicle_by_id(db, vehicle_id)
+    if not db_vehicle:
+        return None
+    db_vehicle.quantity -= 1
+    db.commit()
+    db.refresh(db_vehicle)
+    return db_vehicle
+
+def restock_vehicle(db: Session, vehicle_id: int, quantity: int) -> Optional[Vehicle]:
+    """Increment a vehicle's quantity by the given amount."""
+    db_vehicle = get_vehicle_by_id(db, vehicle_id)
+    if not db_vehicle:
+        return None
+    db_vehicle.quantity += quantity
+    db.commit()
+    db.refresh(db_vehicle)
+    return db_vehicle
+
+

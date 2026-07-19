@@ -23,12 +23,12 @@ app.add_middleware(
 )
 
 
-app.include_router(auth_router)
-app.include_router(vehicles_router)
+app.include_router(auth_router, prefix="/api")
+app.include_router(vehicles_router, prefix="/api")
 
 
 @app.get("/")
 def root():
     return {
         "message": "Car Dealership API is running"
-    }
+    }

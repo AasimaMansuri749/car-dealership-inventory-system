@@ -32,3 +32,33 @@ def delete_vehicle(db: Session, vehicle_id: int) -> bool:
     """Delete a vehicle using repository."""
     return vehicle_repository.delete_vehicle(db, vehicle_id)
 
+def search_vehicles(
+    db: Session,
+    make: Optional[str] = None,
+    model: Optional[str] = None,
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None
+) -> List[Vehicle]:
+    """Search for vehicles using the repository layer."""
+    return vehicle_repository.search_vehicles(
+        db, make=make, model=model, category=category, min_price=min_price, max_price=max_price
+    )
+
+def purchase_vehicle(db: Session, vehicle_id: int) -> Optional[Vehicle]:
+    """Decrease a vehicle's quantity by 1."""
+    vehicle = vehicle_repository.get_vehicle_by_id(db, vehicle_id)
+    if not vehicle:
+        return None
+    if vehicle.quantity <= 0:
+        raise InvalidVehicleData("Vehicle is out of stock")
+    return vehicle_repository.purchase_vehicle(db, vehicle_id)
+
+def restock_vehicle(db: Session, vehicle_id: int, quantity: int) -> Optional[Vehicle]:
+    """Increase a vehicle's quantity by a positive amount."""
+    if quantity <= 0:
+        raise InvalidVehicleData("Restock quantity must be greater than zero")
+    return vehicle_repository.restock_vehicle(db, vehicle_id, quantity)
+
+
+

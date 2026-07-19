@@ -7,7 +7,9 @@ from app.exceptions.user_exceptions import UserAlreadyExists, InvalidCredentials
 
 def register_user(db: Session, user_data: dict):
     """
-    Register a new user.
+    Register a new user. The role is always forced to CUSTOMER
+    regardless of any input — admin accounts must be created via
+    the create_admin.py script.
     """
 
     existing_user = user_repository.get_user_by_email(
@@ -24,6 +26,9 @@ def register_user(db: Session, user_data: dict):
 
     user_data["password_hash"] = hashed_password
     del user_data["password"]
+
+    # Security: always assign CUSTOMER — never trust caller-supplied role
+    user_data["role"] = "CUSTOMER"
 
     return user_repository.create_user(
         db,
