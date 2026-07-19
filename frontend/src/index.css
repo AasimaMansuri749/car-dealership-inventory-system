@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eef4ff 0%, #f8fafc 45%, #f1f5f9 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.2);
+  color: #0f172a;
+}
+
+.soft-card {
+  @apply rounded-3xl border border-slate-200/70 bg-white/90 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.35)] backdrop-blur;
+}
+
+.auth-panel {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.96) 0%, rgba(37, 99, 235, 0.94) 100%);
+}
+
+.glow-ring {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 18px 45px rgba(15,23,42,0.16);
+}
