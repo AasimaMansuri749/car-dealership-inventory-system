@@ -90,7 +90,7 @@ This runs the full suite (49 passing tests) verifying routes, database schemas, 
 ---
 
 ## Screenshots
-*(Add your final application screenshots in the `/screenshots` directory and link them here)*
+
 
 #### Login Page
 ![Login Screen](screenshots/login.png)
